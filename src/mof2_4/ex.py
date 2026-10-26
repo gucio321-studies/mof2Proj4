@@ -1,6 +1,27 @@
 from scipy import constants as const
 import numpy as np
+from matplotlib import pyplot as plt
 
+def ex2():
+    b = base()
+    V = b.V(b.x)
+    b.solve()
+    psiSq = np.abs(b.psi)**2
+
+    fig, ax = plt.subplots()
+    
+    ax.plot(b.x*b.A0, psiSq)
+    ax.set_xlabel("położenie [m]")
+    ax.set_ylabel("$|\\Psi|^2$")
+    ax.grid()
+
+    ax = ax.twinx()
+    ax.plot(b.x*b.A0, base.au_to_meV(V), color='red')
+    ax.set_ylabel("Energia [meV]")
+
+    fig.savefig("ex2.svg", format="svg")
+    plt.close(fig)
+    
 
 class base:
     def __init__(self, dx=0.5e-9, N=100, m=0.067 * const.m_e, E=7):
@@ -19,7 +40,7 @@ class base:
 
     def V(self, x):
         v = self.meV_to_au(-3.0)
-        return v if self.l <= x <= 2 * self.l else 0.0
+        return np.where((self.l <= x) & (x <= 2 * self.l), v, 0.)
 
     @staticmethod
     def meV_to_au(meV):
