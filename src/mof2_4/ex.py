@@ -1,24 +1,32 @@
 from scipy import constants as const
 import numpy as np
 from matplotlib import pyplot as plt
+from scipy.signal import find_peaks
 
 
-def ex2():
-    b = base()
+def ex2(E=7, out="ex2"):
+    b = base(E=E)
     V = b.V(b.x)
     b.solve()
     psiSq = np.abs(b.psi) ** 2
 
     A, B = b.getProb()
-    print(f"Ex2: Otrzymano wartości A={A} i B={B}")
+    print(f"{out.title()}: Otrzymano wartości A={A} i B={B}")
     x_lt = b.x[: b.N - 1]
-    psi_lt = A * np.exp(1j * b.q * x_lt) + B * np.exp(-1j * b.q * x_lt)
+    psi_lt_A = A * np.exp(1j * b.q * x_lt)
+    psi_lt_A_sq = np.abs(psi_lt_A) ** 2
+    psi_lt_B = B * np.exp(-1j * b.q * x_lt)
+    psi_lt_B_sq = np.abs(psi_lt_B) ** 2
+
+    psi_lt = psi_lt_A + psi_lt_B
     psi_lt_sq = np.abs(psi_lt) ** 2
 
     fig, ax = plt.subplots()
 
     ax.plot(b.x * b.A0, psiSq, label="$|\\Psi|^2$ numeryczne")
-    ax.plot(x_lt * b.A0, psi_lt_sq, label="$|\\Psi_<|^2")
+    ax.plot(x_lt * b.A0, psi_lt_sq, label="$|\\Psi_<|^2$")
+    ax.plot(x_lt * b.A0, psi_lt_A_sq, label="$|\\Psi_{in}|^2$")
+    ax.plot(x_lt * b.A0, psi_lt_B_sq, label="$|\\Psi_{R}|^2$", color="purple")
     ax.set_xlabel("położenie [m]")
     ax.set_ylabel("$|\\Psi|^2$")
     ax.grid()
@@ -28,29 +36,43 @@ def ex2():
     ax.plot(b.x * b.A0, base.au_to_meV(V), color="red")
     ax.set_ylabel("Energia [meV]")
 
-    fig.savefig("ex2.svg", format="svg")
+    fig.savefig(f"{out}.svg", format="svg")
     plt.close(fig)
 
 
 def ex3():
-    grid = 50
-    Es = np.logspace(-4,2,grid)
+    # Polecenie nakazuje narysować (0, 60], ale moim zdaniem logspace jest tutaj ciekawszy
+    grid = 200
+    Es = np.logspace(-2, 3, grid)
     Rs = np.zeros(grid)
     for i in range(grid):
-        b=base(E=Es[i])
+        b = base(E=Es[i])
         b.solve()
-        A,B = b.getProb()
-        Rs[i] = np.abs(B/A)**2
+        A, B = b.getProb()
+        Rs[i] = np.abs(B / A) ** 2
 
     fig, ax = plt.subplots()
     ax.plot(Es, Rs, label="R(E)")
-    ax.plot(Es, 1-Rs, label="T(E)")
-    ax.set_xscale('log')
+    ax.plot(Es, 1 - Rs, label="T(E)")
+    ax.set_xscale("log")
+    ax.set_xlabel("E [meV]")
     ax.legend()
     ax.grid()
-    fig.savefig("ex3.svg", format='svg')
+    fig.savefig("ex3.svg", format="svg")
     plt.close(fig)
-        
+
+    return (Es, Rs)
+
+
+def ex4(Es, Rs):
+    count = 3
+    minimasI, _ = find_peaks(-Rs)
+    minimasI = minimasI[:count] # lets say we want only 3 energies
+    Es = Es[minimasI]
+    for i in range(count):
+        print(f"Ex4: Resonance for E={Es[i]}, T={Rs[i]}")
+        ex2(E=Es[i], out=f"ex4_resonance_{i}")
+
 
 
 class base:
@@ -69,7 +91,7 @@ class base:
         self.x = np.linspace(0, 3 * self.l, 3 * self.N - 2)
 
     def V(self, x):
-        v = self.meV_to_au(-3.0)
+        v = self.meV_to_au(-30.0)
         return np.where((self.l <= x) & (x <= 2 * self.l), v, 0.0)
 
     @staticmethod

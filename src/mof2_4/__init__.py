@@ -2,4 +2,5 @@ from . import ex
 
 def main() -> None:
     ex.ex2()
-    ex.ex3()
+    Es, Rs = ex.ex3()
+    ex.ex4(Es, Rs)
